@@ -1,4 +1,4 @@
-module BlogServer
+module ArticleServer
 
 go 1.26.1
 

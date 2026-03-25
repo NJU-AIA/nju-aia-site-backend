@@ -15,7 +15,7 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/blogs": {
+        "/articles": {
             "get": {
                 "produces": [
                     "application/json"
@@ -30,7 +30,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/blog.Blog"
+                                "$ref": "#/definitions/article.Article"
                             }
                         }
                     }
@@ -50,11 +50,11 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "description": "文章数据",
-                        "name": "blog",
+                        "name": "article",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/blog.CreateRequest"
+                            "$ref": "#/definitions/article.CreateRequest"
                         }
                     }
                 ],
@@ -69,13 +69,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/blog.ErrorResponse"
+                            "$ref": "#/definitions/article.ErrorResponse"
                         }
                     }
                 }
             }
         },
-        "/blogs/{id}": {
+        "/articles/{id}": {
             "get": {
                 "tags": [
                     "博客接口"
@@ -95,19 +95,84 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/blog.Blog"
+                            "$ref": "#/definitions/article.Article"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/blog.ErrorResponse"
+                            "$ref": "#/definitions/article.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/blog.ErrorResponse"
+                            "$ref": "#/definitions/article.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/assets": {
+            "post": {
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "tags": [
+                    "资源接口"
+                ],
+                "summary": "上传资源",
+                "parameters": [
+                    {
+                        "type": "file",
+                        "description": "文件",
+                        "name": "file",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/asset.SuccessResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/upload": {
+            "post": {
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "资源接口"
+                ],
+                "summary": "上传资源文件",
+                "parameters": [
+                    {
+                        "type": "file",
+                        "description": "文件",
+                        "name": "file",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/upload.UploadResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/upload.ErrorResponse"
                         }
                     }
                 }
@@ -115,7 +180,7 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "blog.Blog": {
+        "article.Article": {
             "type": "object",
             "properties": {
                 "author": {
@@ -142,7 +207,7 @@ const docTemplate = `{
                 }
             }
         },
-        "blog.CreateRequest": {
+        "article.CreateRequest": {
             "type": "object",
             "required": [
                 "content",
@@ -163,12 +228,49 @@ const docTemplate = `{
                 }
             }
         },
-        "blog.ErrorResponse": {
+        "article.ErrorResponse": {
             "type": "object",
             "properties": {
                 "error": {
                     "type": "string",
                     "example": "参数校验失败：标题不能为空"
+                }
+            }
+        },
+        "asset.SuccessResponse": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "url": {
+                    "type": "string"
+                }
+            }
+        },
+        "upload.ErrorResponse": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "string",
+                    "example": "错误描述"
+                }
+            }
+        },
+        "upload.UploadResponse": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "message": {
+                    "type": "string",
+                    "example": "上传成功"
+                },
+                "url": {
+                    "type": "string",
+                    "example": "/uploads/images/2026/03/25/uuid.png"
                 }
             }
         }
@@ -179,7 +281,7 @@ const docTemplate = `{
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
 	Host:             "localhost:8080",
-	BasePath:         "/api/v1",
+	BasePath:         "/api",
 	Schemes:          []string{},
 	Title:            "AIA 社团博客 API",
 	Description:      "AIA 论坛后端。",

@@ -1,6 +1,6 @@
-basePath: /api/v1
+basePath: /api
 definitions:
-  blog.Blog:
+  article.Article:
     properties:
       author:
         example: 张三
@@ -19,7 +19,7 @@ definitions:
       updated_at:
         type: string
     type: object
-  blog.CreateRequest:
+  article.CreateRequest:
     properties:
       author:
         example: 社团负责人
@@ -36,10 +36,35 @@ definitions:
     - content
     - title
     type: object
-  blog.ErrorResponse:
+  article.ErrorResponse:
     properties:
       error:
         example: 参数校验失败：标题不能为空
+        type: string
+    type: object
+  asset.SuccessResponse:
+    properties:
+      id:
+        type: integer
+      url:
+        type: string
+    type: object
+  upload.ErrorResponse:
+    properties:
+      error:
+        example: 错误描述
+        type: string
+    type: object
+  upload.UploadResponse:
+    properties:
+      id:
+        example: 1
+        type: integer
+      message:
+        example: 上传成功
+        type: string
+      url:
+        example: /uploads/images/2026/03/25/uuid.png
         type: string
     type: object
 host: localhost:8080
@@ -49,7 +74,7 @@ info:
   title: AIA 社团博客 API
   version: "1.0"
 paths:
-  /blogs:
+  /articles:
     get:
       produces:
       - application/json
@@ -58,7 +83,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/blog.Blog'
+              $ref: '#/definitions/article.Article'
             type: array
       summary: 获取所有博客文章列表
       tags:
@@ -69,10 +94,10 @@ paths:
       parameters:
       - description: 文章数据
         in: body
-        name: blog
+        name: article
         required: true
         schema:
-          $ref: '#/definitions/blog.CreateRequest'
+          $ref: '#/definitions/article.CreateRequest'
       produces:
       - application/json
       responses:
@@ -84,11 +109,11 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/blog.ErrorResponse'
+            $ref: '#/definitions/article.ErrorResponse'
       summary: 发布一篇 Markdown 博客
       tags:
       - 博客接口
-  /blogs/{id}:
+  /articles/{id}:
     get:
       parameters:
       - description: 博客ID
@@ -101,16 +126,58 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/blog.Blog'
+            $ref: '#/definitions/article.Article'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/blog.ErrorResponse'
+            $ref: '#/definitions/article.ErrorResponse'
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/blog.ErrorResponse'
+            $ref: '#/definitions/article.ErrorResponse'
       summary: 获取特定 ID 的博客
       tags:
       - 博客接口
+  /assets:
+    post:
+      consumes:
+      - multipart/form-data
+      parameters:
+      - description: 文件
+        in: formData
+        name: file
+        required: true
+        type: file
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/asset.SuccessResponse'
+      summary: 上传资源
+      tags:
+      - 资源接口
+  /upload:
+    post:
+      consumes:
+      - multipart/form-data
+      parameters:
+      - description: 文件
+        in: formData
+        name: file
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/upload.UploadResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/upload.ErrorResponse'
+      summary: 上传资源文件
+      tags:
+      - 资源接口
 swagger: "2.0"

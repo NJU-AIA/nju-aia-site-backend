@@ -7,9 +7,9 @@
         "version": "1.0"
     },
     "host": "localhost:8080",
-    "basePath": "/api/v1",
+    "basePath": "/api",
     "paths": {
-        "/blogs": {
+        "/articles": {
             "get": {
                 "produces": [
                     "application/json"
@@ -24,7 +24,7 @@
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/blog.Blog"
+                                "$ref": "#/definitions/article.Article"
                             }
                         }
                     }
@@ -44,11 +44,11 @@
                 "parameters": [
                     {
                         "description": "文章数据",
-                        "name": "blog",
+                        "name": "article",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/blog.CreateRequest"
+                            "$ref": "#/definitions/article.CreateRequest"
                         }
                     }
                 ],
@@ -63,13 +63,13 @@
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/blog.ErrorResponse"
+                            "$ref": "#/definitions/article.ErrorResponse"
                         }
                     }
                 }
             }
         },
-        "/blogs/{id}": {
+        "/articles/{id}": {
             "get": {
                 "tags": [
                     "博客接口"
@@ -89,19 +89,84 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/blog.Blog"
+                            "$ref": "#/definitions/article.Article"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/blog.ErrorResponse"
+                            "$ref": "#/definitions/article.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/blog.ErrorResponse"
+                            "$ref": "#/definitions/article.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/assets": {
+            "post": {
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "tags": [
+                    "资源接口"
+                ],
+                "summary": "上传资源",
+                "parameters": [
+                    {
+                        "type": "file",
+                        "description": "文件",
+                        "name": "file",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/asset.SuccessResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/upload": {
+            "post": {
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "资源接口"
+                ],
+                "summary": "上传资源文件",
+                "parameters": [
+                    {
+                        "type": "file",
+                        "description": "文件",
+                        "name": "file",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/upload.UploadResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/upload.ErrorResponse"
                         }
                     }
                 }
@@ -109,7 +174,7 @@
         }
     },
     "definitions": {
-        "blog.Blog": {
+        "article.Article": {
             "type": "object",
             "properties": {
                 "author": {
@@ -136,7 +201,7 @@
                 }
             }
         },
-        "blog.CreateRequest": {
+        "article.CreateRequest": {
             "type": "object",
             "required": [
                 "content",
@@ -157,12 +222,49 @@
                 }
             }
         },
-        "blog.ErrorResponse": {
+        "article.ErrorResponse": {
             "type": "object",
             "properties": {
                 "error": {
                     "type": "string",
                     "example": "参数校验失败：标题不能为空"
+                }
+            }
+        },
+        "asset.SuccessResponse": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "url": {
+                    "type": "string"
+                }
+            }
+        },
+        "upload.ErrorResponse": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "string",
+                    "example": "错误描述"
+                }
+            }
+        },
+        "upload.UploadResponse": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "message": {
+                    "type": "string",
+                    "example": "上传成功"
+                },
+                "url": {
+                    "type": "string",
+                    "example": "/uploads/images/2026/03/25/uuid.png"
                 }
             }
         }

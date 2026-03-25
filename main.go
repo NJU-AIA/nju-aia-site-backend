@@ -1,6 +1,6 @@
 package main
 
-import "BlogServer/cmd/server"
+import "ArticleServer/cmd/server"
 
 func main() {
 	server.Run()

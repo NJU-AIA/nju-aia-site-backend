@@ -12,7 +12,7 @@
 ### 步骤 A：初始化数据库
 在 MySQL 中创建逻辑库（表结构由程序启动时自动迁移）：
 ```sql
-CREATE DATABASE IF NOT EXISTS BlogData;
+CREATE DATABASE IF NOT EXISTS ArticleData;
 ```
 
 ### 步骤 B：编译依赖与同步契约
@@ -35,7 +35,7 @@ swag init -g cmd/server/main.go --parseDependency
     ```bash
     DB_PASS=你的密码 go run main.go
     ```
-*   **默认配置路径**: `root:114514@tcp(127.0.0.1:3306)/BlogData`
+*   **默认配置路径**: `root:114514@tcp(127.0.0.1:3306)/ArticleData`
 
 ## 3. 环境变量配置表 (Environment Variables)
 
@@ -45,7 +45,7 @@ swag init -g cmd/server/main.go --parseDependency
 | `DB_PASS` | 数据库密码 | `114514` |
 | `DB_HOST` | 数据库物理地址 | `127.0.0.1` |
 | `DB_PORT` | 数据库监听端口 | `3306` |
-| `DB_NAME` | 逻辑数据库名称 | `BlogData` |
+| `DB_NAME` | 逻辑数据库名称 | `ArticleData` |
 
 ## 4. 接口契约说明 (API Contract)
 
@@ -53,9 +53,9 @@ swag init -g cmd/server/main.go --parseDependency
 
 | 功能 | 方法 | 路径 | 成功状态码 | 错误码 (4xx) |
 | :--- | :--- | :--- | :--- | :--- |
-| **发布文章** | `POST` | `/api/v1/blogs` | `201 Created` | `400` (参数缺失) |
-| **文章详情** | `GET` | `/api/v1/blogs/:id` | `200 OK` | `400` (ID非数字), `404` (不存在) |
-| **文章列表** | `GET` | `/api/v1/blogs` | `200 OK` | `500` (数据库异常) |
+| **发布文章** | `POST` | `/api/articles` | `201 Created` | `400` (参数缺失) |
+| **文章详情** | `GET` | `/api/articles/:id` | `200 OK` | `400` (ID非数字), `404` (不存在) |
+| **文章列表** | `GET` | `/api/articles` | `200 OK` | `500` (数据库异常) |
 | **可视化文档** | `GET` | `/swagger/index.html` | - | - |
 
 
@@ -65,7 +65,7 @@ swag init -g cmd/server/main.go --parseDependency
 ├── cmd/
 │   └── server/          # 装配中心：数据库连接、CORS中间件、路由挂载
 ├── internal/
-│   └── blog/            # 业务核心：Handler(接口)、Service(逻辑)、Repo(SQL)、Model(实体)
+│   └── article/            # 业务核心：Handler(接口)、Service(逻辑)、Repo(SQL)、Model(实体)
 ├── docs/                # Swag 自动生成的静态文档 (由 swag init 生成)
 ├── main.go              # 程序唯一物理入口
 ├── README.md

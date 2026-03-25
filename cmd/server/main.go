@@ -5,8 +5,8 @@ import (
 	"log"
 	"os"
 
-	_ "BlogServer/docs"
-	"BlogServer/internal/blog"
+	_ "ArticleServer/docs"
+	"ArticleServer/internal/article"
 
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
@@ -35,15 +35,15 @@ func (c *DBConfig) getDSN() string {
 // @version 1.0
 // @description AIA 论坛后端。
 // @host localhost:8080
-// @BasePath /api/v1
+// @BasePath /api
 func Run() {
 	
 	config := DBConfig{
 		User:     getEnv("DB_USER", "root"),
-		Password: getEnv("DB_PASS", "114514"),
+		Password: getEnv("DB_PASS", "061112"),
 		Host:     getEnv("DB_HOST", "127.0.0.1"),
 		Port:     getEnv("DB_PORT", "3306"),
-		DBName:   getEnv("DB_NAME", "BlogData"),
+		DBName:   getEnv("DB_NAME", "ArticleData"),
 	}
 
 	log.Printf("正在尝试连接数据库: %s:%s/%s", config.Host, config.Port, config.DBName)
@@ -53,16 +53,16 @@ func Run() {
 		log.Fatalf("数据库连接失败: %v", err)
 	}
 
-    repo := blog.NewRepository(db)
-	svc := blog.NewService(repo)
-	handler := blog.NewHandler(svc)
+    repo := article.NewRepository(db)
+	svc := article.NewService(repo)
+	handler := article.NewHandler(svc)
 
 	r := gin.Default()
-	v1 := r.Group("/api/v1")
+	v1 := r.Group("/api")
 	{
-		v1.POST("/blogs", handler.CreateBlog)
-		v1.GET("/blogs/:id", handler.GetBlog)
-		v1.GET("/blogs", handler.ListBlogs)
+		v1.POST("/articles", handler.CreateArticle)
+		v1.GET("/articles/:id", handler.GetArticle)
+		v1.GET("/articles", handler.ListArticles)
 	}
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
