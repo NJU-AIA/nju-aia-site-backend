@@ -1,0 +1,116 @@
+basePath: /api/v1
+definitions:
+  blog.Blog:
+    properties:
+      author:
+        example: 张三
+        type: string
+      content:
+        example: '# Markdown内容'
+        type: string
+      created_at:
+        type: string
+      id:
+        example: 1
+        type: integer
+      title:
+        example: 标题五个字
+        type: string
+      updated_at:
+        type: string
+    type: object
+  blog.CreateRequest:
+    properties:
+      author:
+        example: 社团负责人
+        type: string
+      content:
+        example: |-
+          # 第一章：拒绝模糊逻辑
+          这是一篇关于 Go 强类型的文章。
+        type: string
+      title:
+        example: 关于后端严谨性的深度思考
+        type: string
+    required:
+    - content
+    - title
+    type: object
+  blog.ErrorResponse:
+    properties:
+      error:
+        example: 参数校验失败：标题不能为空
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: AIA 论坛后端。
+  title: AIA 社团博客 API
+  version: "1.0"
+paths:
+  /blogs:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/blog.Blog'
+            type: array
+      summary: 获取所有博客文章列表
+      tags:
+      - 博客接口
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: 文章数据
+        in: body
+        name: blog
+        required: true
+        schema:
+          $ref: '#/definitions/blog.CreateRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/blog.ErrorResponse'
+      summary: 发布一篇 Markdown 博客
+      tags:
+      - 博客接口
+  /blogs/{id}:
+    get:
+      parameters:
+      - description: 博客ID
+        example: 1
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/blog.Blog'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/blog.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/blog.ErrorResponse'
+      summary: 获取特定 ID 的博客
+      tags:
+      - 博客接口
+swagger: "2.0"
