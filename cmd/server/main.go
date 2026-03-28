@@ -20,7 +20,7 @@ func Run() {
 	// 1. 初始化数据库连接
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
 		getEnv("DB_USER", "root"),
-		getEnv("DB_PASS", "061112"),
+		getEnv("DB_PASS", "114514"),
 		getEnv("DB_HOST", "127.0.0.1"),
 		getEnv("DB_PORT", "3306"),
 		getEnv("DB_NAME", "ArticleData"),
