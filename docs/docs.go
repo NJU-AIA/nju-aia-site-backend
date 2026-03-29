@@ -43,11 +43,11 @@ const docTemplate = `{
                 "tags": [
                     "Articles"
                 ],
-                "summary": "发布新文章",
+                "summary": "发布文章",
                 "parameters": [
                     {
-                        "description": "文章内容",
-                        "name": "article",
+                        "description": "文章数据",
+                        "name": "body",
                         "in": "body",
                         "required": true,
                         "schema": {
@@ -76,15 +76,17 @@ const docTemplate = `{
         },
         "/articles/{id}": {
             "get": {
-                "tags": [
-                    "博客接口"
+                "produces": [
+                    "application/json"
                 ],
-                "summary": "获取特定 ID 的博客",
+                "tags": [
+                    "Articles"
+                ],
+                "summary": "获取文章详情",
                 "parameters": [
                     {
                         "type": "string",
-                        "example": "\"1\"",
-                        "description": "博客ID",
+                        "description": "文章 ID (UUID)",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -97,10 +99,45 @@ const docTemplate = `{
                             "$ref": "#/definitions/article.Article"
                         }
                     },
-                    "400": {
-                        "description": "Bad Request",
+                    "404": {
+                        "description": "Not Found",
                         "schema": {
                             "$ref": "#/definitions/article.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "Articles"
+                ],
+                "summary": "编辑文章",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "文章 ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "更新的数据",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/article.CreateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "{\"message\": \"更新成功\"}",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     },
                     "404": {
@@ -110,37 +147,63 @@ const docTemplate = `{
                         }
                     }
                 }
-            }
-        },
-        "/assets": {
-            "post": {
-                "consumes": [
-                    "multipart/form-data"
-                ],
+            },
+            "delete": {
                 "tags": [
-                    "资源接口"
+                    "Articles"
                 ],
-                "summary": "上传资源",
+                "summary": "删除文章",
                 "parameters": [
                     {
-                        "type": "file",
-                        "description": "文件",
-                        "name": "file",
-                        "in": "formData",
+                        "type": "string",
+                        "description": "文章 ID",
+                        "name": "id",
+                        "in": "path",
                         "required": true
                     }
                 ],
                 "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/asset.SuccessResponse"
-                        }
+                    "204": {
+                        "description": "No Content"
                     }
                 }
             }
         },
-        "/upload": {
+        "/assets": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Assets"
+                ],
+                "summary": "获取静态资源列表",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "路径范围",
+                        "name": "scope",
+                        "in": "query"
+                    },
+                    {
+                        "enum": [
+                            "article",
+                            "shared"
+                        ],
+                        "type": "string",
+                        "description": "类型",
+                        "name": "kind",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "页码",
+                        "name": "page",
+                        "in": "query"
+                    }
+                ],
+                "responses": {}
+            },
             "post": {
                 "consumes": [
                     "multipart/form-data"
@@ -149,29 +212,114 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "资源接口"
+                    "Assets"
                 ],
-                "summary": "上传资源文件",
+                "summary": "上传静态资源",
                 "parameters": [
                     {
+                        "type": "string",
+                        "description": "第一层路径 (文章ID或公共目录)",
+                        "name": "scope",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "文件名主干 (不含扩展名)",
+                        "name": "name",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "是否覆盖同路径资源",
+                        "name": "overwrite",
+                        "in": "formData"
+                    },
+                    {
                         "type": "file",
-                        "description": "文件",
+                        "description": "文件流",
                         "name": "file",
                         "in": "formData",
                         "required": true
                     }
                 ],
                 "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/asset.AssetRecord"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Assets"
+                ],
+                "summary": "删除静态资源",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "资源完整路径 (如 /images/capoo.webp)",
+                        "name": "path",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/asset.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/login": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "管理员登录",
+                "parameters": [
+                    {
+                        "description": "登录参数",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/auth.LoginRequest"
+                        }
+                    }
+                ],
+                "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/upload.UploadResponse"
+                            "$ref": "#/definitions/auth.LoginResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/upload.ErrorResponse"
+                            "$ref": "#/definitions/auth.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/auth.ErrorResponse"
                         }
                     }
                 }
@@ -183,31 +331,46 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "author": {
-                    "type": "string"
+                    "description": "Author 作者姓名或昵称",
+                    "type": "string",
+                    "example": "负责人"
                 },
                 "category": {
-                    "type": "string"
+                    "description": "Category 文章分类",
+                    "type": "string",
+                    "example": "技术分享"
                 },
                 "content": {
-                    "description": "omitempty 表示列表时不展示正文",
-                    "type": "string"
+                    "description": "Content 文章正文",
+                    "type": "string",
+                    "example": "# 第一章\n内容如下..."
+                },
+                "cover": {
+                    "description": "Cover 文章封面图 URL",
+                    "type": "string",
+                    "example": "https://example.com/cover.jpg"
                 },
                 "createdAt": {
-                    "description": "小驼峰",
+                    "description": "CreatedAt 创建时间",
                     "type": "string"
                 },
                 "defaultMode": {
-                    "description": "小驼峰",
-                    "type": "string"
+                    "description": "DefaultMode 展示模式：article, slide, homework",
+                    "type": "string",
+                    "example": "article"
                 },
                 "id": {
-                    "type": "string"
+                    "description": "ID",
+                    "type": "string",
+                    "example": "550e8400-e29b-41d4-a716-446655440000"
                 },
                 "title": {
-                    "type": "string"
+                    "description": "Title 文章标题",
+                    "type": "string",
+                    "example": "关于后端架构的深度思考"
                 },
                 "updatedAt": {
-                    "description": "小驼峰",
+                    "description": "UpdatedAt 更新时间",
                     "type": "string"
                 }
             }
@@ -216,7 +379,6 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "items": {
-                    "description": "必须叫 items",
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/article.Article"
@@ -236,18 +398,20 @@ const docTemplate = `{
             "properties": {
                 "author": {
                     "type": "string",
-                    "example": "负责人"
+                    "example": "作者"
                 },
                 "category": {
                     "type": "string",
-                    "example": "技术分享"
+                    "example": "分类"
                 },
                 "content": {
                     "type": "string",
-                    "example": "# Markdown 内容"
+                    "example": "# 正文"
+                },
+                "cover": {
+                    "type": "string"
                 },
                 "defaultMode": {
-                    "description": "@Enums article, slide, homework",
                     "type": "string",
                     "enum": [
                         "article",
@@ -258,7 +422,7 @@ const docTemplate = `{
                 },
                 "title": {
                     "type": "string",
-                    "example": "关于后端严谨性的深度思考"
+                    "example": "标题"
                 }
             }
         },
@@ -267,22 +431,60 @@ const docTemplate = `{
             "properties": {
                 "error": {
                     "type": "string",
-                    "example": "参数校验失败"
+                    "example": "错误信息描述"
                 }
             }
         },
-        "asset.SuccessResponse": {
+        "asset.AssetRecord": {
             "type": "object",
             "properties": {
-                "id": {
+                "contentType": {
+                    "description": "ContentType 文件的 MIME 类型",
+                    "type": "string"
+                },
+                "ext": {
+                    "description": "Ext 扩展名",
+                    "type": "string"
+                },
+                "filename": {
+                    "description": "Filename 完整文件名",
+                    "type": "string"
+                },
+                "kind": {
+                    "description": "Kind 资源归属类型: article, shared",
+                    "type": "string"
+                },
+                "markdownValue": {
+                    "description": "MarkdownValue 推荐写入 Markdown 的值",
+                    "type": "string"
+                },
+                "name": {
+                    "description": "Name 文件名主干",
+                    "type": "string"
+                },
+                "path": {
+                    "description": "Path 完整资源路径",
+                    "type": "string"
+                },
+                "scope": {
+                    "description": "Scope 第一层路径",
+                    "type": "string"
+                },
+                "size": {
+                    "description": "Size 文件大小",
                     "type": "integer"
                 },
+                "uploadedAt": {
+                    "description": "UploadedAt 上传时间",
+                    "type": "string"
+                },
                 "url": {
+                    "description": "URL 完整访问地址",
                     "type": "string"
                 }
             }
         },
-        "upload.ErrorResponse": {
+        "asset.ErrorResponse": {
             "type": "object",
             "properties": {
                 "error": {
@@ -291,20 +493,37 @@ const docTemplate = `{
                 }
             }
         },
-        "upload.UploadResponse": {
+        "auth.ErrorResponse": {
             "type": "object",
             "properties": {
-                "id": {
-                    "type": "integer",
-                    "example": 1
-                },
-                "message": {
+                "error": {
                     "type": "string",
-                    "example": "上传成功"
-                },
-                "url": {
+                    "example": "密码错误"
+                }
+            }
+        },
+        "auth.LoginRequest": {
+            "type": "object",
+            "required": [
+                "password"
+            ],
+            "properties": {
+                "password": {
                     "type": "string",
-                    "example": "/uploads/images/2026/03/25/uuid.png"
+                    "example": "strong_pwd_123"
+                },
+                "username": {
+                    "type": "string",
+                    "example": "admin"
+                }
+            }
+        },
+        "auth.LoginResponse": {
+            "type": "object",
+            "properties": {
+                "token": {
+                    "type": "string",
+                    "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
                 }
             }
         }
@@ -313,12 +532,12 @@ const docTemplate = `{
 
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
-	Version:          "",
-	Host:             "",
-	BasePath:         "",
+	Version:          "1.0",
+	Host:             "localhost:8080",
+	BasePath:         "/api",
 	Schemes:          []string{},
-	Title:            "",
-	Description:      "",
+	Title:            "AIA 社团博客 API",
+	Description:      "这是 AIA 社团论坛的后端服务，支持 Markdown 文章管理与静态资源分类存储。",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",

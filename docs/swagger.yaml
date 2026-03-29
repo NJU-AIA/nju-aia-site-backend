@@ -1,31 +1,47 @@
+basePath: /api
 definitions:
   article.Article:
     properties:
       author:
+        description: Author 作者姓名或昵称
+        example: 负责人
         type: string
       category:
+        description: Category 文章分类
+        example: 技术分享
         type: string
       content:
-        description: omitempty 表示列表时不展示正文
+        description: Content 文章正文
+        example: |-
+          # 第一章
+          内容如下...
+        type: string
+      cover:
+        description: Cover 文章封面图 URL
+        example: https://example.com/cover.jpg
         type: string
       createdAt:
-        description: 小驼峰
+        description: CreatedAt 创建时间
         type: string
       defaultMode:
-        description: 小驼峰
+        description: DefaultMode 展示模式：article, slide, homework
+        example: article
         type: string
       id:
+        description: ID
+        example: 550e8400-e29b-41d4-a716-446655440000
         type: string
       title:
+        description: Title 文章标题
+        example: 关于后端架构的深度思考
         type: string
       updatedAt:
-        description: 小驼峰
+        description: UpdatedAt 更新时间
         type: string
     type: object
   article.ArticleListResponse:
     properties:
       items:
-        description: 必须叫 items
         items:
           $ref: '#/definitions/article.Article'
         type: array
@@ -33,16 +49,17 @@ definitions:
   article.CreateRequest:
     properties:
       author:
-        example: 负责人
+        example: 作者
         type: string
       category:
-        example: 技术分享
+        example: 分类
         type: string
       content:
-        example: '# Markdown 内容'
+        example: '# 正文'
+        type: string
+      cover:
         type: string
       defaultMode:
-        description: '@Enums article, slide, homework'
         enum:
         - article
         - slide
@@ -50,7 +67,7 @@ definitions:
         example: article
         type: string
       title:
-        example: 关于后端严谨性的深度思考
+        example: 标题
         type: string
     required:
     - author
@@ -62,36 +79,80 @@ definitions:
   article.ErrorResponse:
     properties:
       error:
-        example: 参数校验失败
+        example: 错误信息描述
         type: string
     type: object
-  asset.SuccessResponse:
+  asset.AssetRecord:
     properties:
-      id:
+      contentType:
+        description: ContentType 文件的 MIME 类型
+        type: string
+      ext:
+        description: Ext 扩展名
+        type: string
+      filename:
+        description: Filename 完整文件名
+        type: string
+      kind:
+        description: 'Kind 资源归属类型: article, shared'
+        type: string
+      markdownValue:
+        description: MarkdownValue 推荐写入 Markdown 的值
+        type: string
+      name:
+        description: Name 文件名主干
+        type: string
+      path:
+        description: Path 完整资源路径
+        type: string
+      scope:
+        description: Scope 第一层路径
+        type: string
+      size:
+        description: Size 文件大小
         type: integer
+      uploadedAt:
+        description: UploadedAt 上传时间
+        type: string
       url:
+        description: URL 完整访问地址
         type: string
     type: object
-  upload.ErrorResponse:
+  asset.ErrorResponse:
     properties:
       error:
         example: 错误描述
         type: string
     type: object
-  upload.UploadResponse:
+  auth.ErrorResponse:
     properties:
-      id:
-        example: 1
-        type: integer
-      message:
-        example: 上传成功
-        type: string
-      url:
-        example: /uploads/images/2026/03/25/uuid.png
+      error:
+        example: 密码错误
         type: string
     type: object
+  auth.LoginRequest:
+    properties:
+      password:
+        example: strong_pwd_123
+        type: string
+      username:
+        example: admin
+        type: string
+    required:
+    - password
+    type: object
+  auth.LoginResponse:
+    properties:
+      token:
+        example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        type: string
+    type: object
+host: localhost:8080
 info:
   contact: {}
+  description: 这是 AIA 社团论坛的后端服务，支持 Markdown 文章管理与静态资源分类存储。
+  title: AIA 社团博客 API
+  version: "1.0"
 paths:
   /articles:
     get:
@@ -109,9 +170,9 @@ paths:
       consumes:
       - application/json
       parameters:
-      - description: 文章内容
+      - description: 文章数据
         in: body
-        name: article
+        name: body
         required: true
         schema:
           $ref: '#/definitions/article.CreateRequest'
@@ -128,58 +189,131 @@ paths:
           description: Bad Request
           schema:
             $ref: '#/definitions/article.ErrorResponse'
-      summary: 发布新文章
+      summary: 发布文章
       tags:
       - Articles
   /articles/{id}:
-    get:
+    delete:
       parameters:
-      - description: 博客ID
-        example: '"1"'
+      - description: 文章 ID
         in: path
         name: id
         required: true
         type: string
       responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/article.Article'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/article.ErrorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/article.ErrorResponse'
-      summary: 获取特定 ID 的博客
+        "204":
+          description: No Content
+      summary: 删除文章
       tags:
-      - 博客接口
-  /assets:
-    post:
-      consumes:
-      - multipart/form-data
+      - Articles
+    get:
       parameters:
-      - description: 文件
-        in: formData
-        name: file
+      - description: 文章 ID (UUID)
+        in: path
+        name: id
         required: true
-        type: file
+        type: string
+      produces:
+      - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/asset.SuccessResponse'
-      summary: 上传资源
+            $ref: '#/definitions/article.Article'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/article.ErrorResponse'
+      summary: 获取文章详情
       tags:
-      - 资源接口
-  /upload:
+      - Articles
+    put:
+      parameters:
+      - description: 文章 ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: 更新的数据
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/article.CreateRequest'
+      responses:
+        "200":
+          description: '{"message": "更新成功"}'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/article.ErrorResponse'
+      summary: 编辑文章
+      tags:
+      - Articles
+  /assets:
+    delete:
+      parameters:
+      - description: 资源完整路径 (如 /images/capoo.webp)
+        in: query
+        name: path
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/asset.ErrorResponse'
+      summary: 删除静态资源
+      tags:
+      - Assets
+    get:
+      parameters:
+      - description: 路径范围
+        in: query
+        name: scope
+        type: string
+      - description: 类型
+        enum:
+        - article
+        - shared
+        in: query
+        name: kind
+        type: string
+      - description: 页码
+        in: query
+        name: page
+        type: integer
+      produces:
+      - application/json
+      responses: {}
+      summary: 获取静态资源列表
+      tags:
+      - Assets
     post:
       consumes:
       - multipart/form-data
       parameters:
-      - description: 文件
+      - description: 第一层路径 (文章ID或公共目录)
+        in: formData
+        name: scope
+        required: true
+        type: string
+      - description: 文件名主干 (不含扩展名)
+        in: formData
+        name: name
+        required: true
+        type: string
+      - description: 是否覆盖同路径资源
+        in: formData
+        name: overwrite
+        type: boolean
+      - description: 文件流
         in: formData
         name: file
         required: true
@@ -187,15 +321,40 @@ paths:
       produces:
       - application/json
       responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/asset.AssetRecord'
+      summary: 上传静态资源
+      tags:
+      - Assets
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: 登录参数
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/auth.LoginRequest'
+      produces:
+      - application/json
+      responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/upload.UploadResponse'
+            $ref: '#/definitions/auth.LoginResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/upload.ErrorResponse'
-      summary: 上传资源文件
+            $ref: '#/definitions/auth.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/auth.ErrorResponse'
+      summary: 管理员登录
       tags:
-      - 资源接口
+      - Auth
 swagger: "2.0"

@@ -4,12 +4,15 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 
 	_ "ArticleServer/docs" // 导入 Swagger 生成的代码
 	"ArticleServer/internal/article"
 	"ArticleServer/internal/asset"
+	"ArticleServer/internal/auth"
 
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 	"gorm.io/driver/mysql"
@@ -17,13 +20,15 @@ import (
 )
 
 func Run() {
+	// 0. 自动加载 .env（文件不存在时静默忽略）
+	_ = godotenv.Load()
 	// 1. 初始化数据库连接
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
 		getEnv("DB_USER", "root"),
 		getEnv("DB_PASS", "114514"),
 		getEnv("DB_HOST", "127.0.0.1"),
 		getEnv("DB_PORT", "3306"),
-		getEnv("DB_NAME", "ArticleData"),
+		getEnv("DB_NAME", "BlogData"),
 	)
 
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
@@ -35,17 +40,17 @@ func Run() {
 	var storageEngine asset.Storage
 	// --- 方案 A: 本地存储 (开发调试用) ---
 	storageEngine = &asset.LocalStorage{
-    RootPath: "./storage/assets",
-    BaseURL:  "http://localhost:8080/assets",
-}
-	/* 
-	// --- 方案 B: OSS (填入参数即可切换) ---
-	storageEngine := &asset.OSSStorage{
-		Endpoint:        "oss-cn-hangzhou.aliyuncs.com",
-		AccessKeyID:     "your_id",
-		AccessKeySecret: "your_secret",
-		BucketName:      "your_bucket",
+		RootPath: "./storage/assets",
+		BaseURL:  "http://localhost:8080/assets",
 	}
+	/*
+		// --- 方案 B: OSS (填入参数即可切换) ---
+		storageEngine := &asset.OSSStorage{
+			Endpoint:        "oss-cn-hangzhou.aliyuncs.com",
+			AccessKeyID:     "your_id",
+			AccessKeySecret: "your_secret",
+			BucketName:      "your_bucket",
+		}
 	*/
 
 	// 3. 模块初始化
@@ -59,6 +64,20 @@ func Run() {
 	assetSvc := asset.NewService(assetRepo, storageEngine)
 	assetHandler := asset.NewHandler(assetSvc)
 
+	// --- 鉴权模块 ---
+	authRepo := auth.NewRepository(db)
+	authSvc := auth.NewService(
+		authRepo,
+		getEnv("JWT_SECRET", "change-me-in-production"),
+		2*time.Hour,
+		getEnv("TOTP_ECC_KEY", ""),
+	)
+	if err := authSvc.EnsureDefaultAdmin(); err != nil {
+		log.Fatalf("初始化默认管理员失败: %v", err)
+	}
+	authHandler := auth.NewHandler(authSvc)
+	authMiddleware := auth.NewMiddleware(authSvc)
+
 	// 4. 设置路由
 	r := gin.Default()
 
@@ -68,6 +87,8 @@ func Run() {
 
 	v1 := r.Group("/api")
 	{
+		v1.POST("/auth/login", authHandler.LoginAdmin)
+
 		// --- 公开访问 (无需鉴权) ---
 		v1.GET("/articles", articleHandler.ListArticles)   // 获取文章列表
 		v1.GET("/articles/:id", articleHandler.GetArticle) // 获取文章详情
@@ -75,21 +96,16 @@ func Run() {
 
 		// --- 敏感操作 ---
 		authorized := v1.Group("/")
-		
-		/* 
-		   鉴权占位：此处后期接入 auth 模块。
-		   authorized.Use(auth.Middleware()) 
-		*/
-		
+		authorized.Use(authMiddleware.RequireAdmin())
 		{
 			// 文章管理
-			authorized.POST("/articles", articleHandler.CreateArticle)			// 创建文章
-			authorized.PUT("/articles/:id", articleHandler.UpdateArticle)		// 更新文章
-			authorized.DELETE("/articles/:id", articleHandler.DeleteArticle)	// 删除文章
+			authorized.POST("/articles", articleHandler.CreateArticle)       // 创建文章
+			authorized.PUT("/articles/:id", articleHandler.UpdateArticle)    // 更新文章
+			authorized.DELETE("/articles/:id", articleHandler.DeleteArticle) // 删除文章
 
 			// 资源管理
-			authorized.POST("/assets", assetHandler.UploadFile)		// 上传资源
-			authorized.DELETE("/assets", assetHandler.DeleteAsset)	// 删除资源
+			authorized.POST("/assets", assetHandler.UploadFile)    // 上传资源
+			authorized.DELETE("/assets", assetHandler.DeleteAsset) // 删除资源
 		}
 	}
 
