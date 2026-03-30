@@ -9,13 +9,12 @@ import (
 )
 
 type Service struct {
-	repo      *Repository
 	jwtSecret []byte
 	tokenTTL  time.Duration
 	eccKey    []byte
 }
 
-func NewService(repo *Repository, jwtSecret string, tokenTTL time.Duration, eccKeyB64 string) *Service {
+func NewService(jwtSecret string, tokenTTL time.Duration, eccKeyB64 string) *Service {
 	secret := strings.TrimSpace(jwtSecret)
 	if secret == "" {
 		secret = "change-me-in-production"
@@ -31,31 +30,13 @@ func NewService(repo *Repository, jwtSecret string, tokenTTL time.Duration, eccK
 	}
 
 	return &Service{
-		repo:      repo,
 		jwtSecret: []byte(secret),
 		tokenTTL:  tokenTTL,
 		eccKey:    eccKey,
 	}
 }
 
-func (s *Service) EnsureDefaultAdmin() error {
-	exists, err := s.repo.ExistsAdmin()
-	if err != nil {
-		return err
-	}
-	if exists {
-		return nil
-	}
-
-	admin := &User{
-		Username: "admin",
-		Role:     RoleAdmin,
-		Status:   "active",
-	}
-	return s.repo.Create(admin)
-}
-
-// Login 使用 ECC-TOTP 动态码验证身份。
+// Login 使用 ECC-TOTP 动态码验证身份，验证通过即获得管理员权限。
 func (s *Service) Login(username, code string) (string, error) {
 	if len(s.eccKey) == 0 {
 		return "", errors.New("TOTP 未配置，请设置 TOTP_ECC_KEY 环境变量")
@@ -65,25 +46,7 @@ func (s *Service) Login(username, code string) (string, error) {
 		return "", errors.New("动态码无效或已过期")
 	}
 
-	var (
-		user *User
-		err  error
-	)
-
-	uname := strings.TrimSpace(username)
-	if uname == "" {
-		user, err = s.repo.FindFirstAdmin()
-	} else {
-		user, err = s.repo.FindByUsername(uname)
-	}
-	if err != nil {
-		return "", err
-	}
-	if user.Status != "active" {
-		return "", errors.New("account disabled")
-	}
-
-	return s.generateToken(user.ID, user.Username, user.Role)
+	return s.generateToken(0, "admin", RoleAdmin)
 }
 
 func (s *Service) generateToken(userID uint, username, role string) (string, error) {

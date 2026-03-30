@@ -15,7 +15,19 @@ func NewService(repo *Repository, storage Storage) *Service {
 	return &Service{repo: repo, storage: storage}
 }
 
-func (s *Service) ProcessUpload(originalName, scope, nameStem string) (*AssetRecord, string) {
+// isSafeSegment 检查路径分段是否安全：不含 .. / \ 等路径穿越字符。
+func isSafeSegment(s string) bool {
+	if s == "" || s == "." || s == ".." {
+		return false
+	}
+	return !strings.ContainsAny(s, `/\`)
+}
+
+func (s *Service) ProcessUpload(originalName, scope, nameStem string) (*AssetRecord, string, error) {
+	if !isSafeSegment(scope) || !isSafeSegment(nameStem) {
+		return nil, "", ErrUnsafePath
+	}
+
 	ext := filepath.Ext(originalName) 
 	filename := nameStem + ext        
 
@@ -58,5 +70,5 @@ func (s *Service) ProcessUpload(originalName, scope, nameStem string) (*AssetRec
 		SavedPath:     savedPath, // 数据库存入: images/capoo.jpg
 	}
 
-	return record, savedPath
+	return record, savedPath, nil
 }

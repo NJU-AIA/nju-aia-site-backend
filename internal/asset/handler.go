@@ -63,7 +63,11 @@ func (h *Handler) UploadFile(c *gin.Context) {
 
 	// 3. 调用 Service 进行逻辑预处理
 	// record: 数据库模型数据, savedPath: 存储引擎所需的物理路径(不带前缀斜杠)
-	record, savedPath := h.svc.ProcessUpload(fileHeader.Filename, scope, nameStem)
+	record, savedPath, err := h.svc.ProcessUpload(fileHeader.Filename, scope, nameStem)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, ErrorResponse{Error: err.Error()})
+		return
+	}
 	record.Size = fileHeader.Size
 
 	// 4. 检查路径冲突 (唯一索引保护)

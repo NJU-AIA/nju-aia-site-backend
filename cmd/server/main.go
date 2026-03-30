@@ -63,16 +63,11 @@ if getEnv("STORAGE_ENGINE", "") == "local" {
 	assetHandler := asset.NewHandler(assetSvc)
 
 	// --- 鉴权模块 ---
-	authRepo := auth.NewRepository(db)
 	authSvc := auth.NewService(
-		authRepo,
 		getEnv("JWT_SECRET", "change-me-in-production"),
 		2*time.Hour,
 		getEnv("TOTP_ECC_KEY", ""),
 	)
-	if err := authSvc.EnsureDefaultAdmin(); err != nil {
-		log.Fatalf("初始化默认管理员失败: %v", err)
-	}
 	authHandler := auth.NewHandler(authSvc)
 	authMiddleware := auth.NewMiddleware(authSvc)
 

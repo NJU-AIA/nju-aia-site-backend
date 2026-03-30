@@ -10,9 +10,9 @@ require (
 	github.com/swaggo/files v1.0.1
 	github.com/swaggo/gin-swagger v1.3.0
 	github.com/swaggo/swag v1.16.6
+	github.com/tencentyun/cos-go-sdk-v5 v0.7.73
 	gorm.io/driver/mysql v1.6.0
 	gorm.io/gorm v1.31.1
-	github.com/tencentyun/cos-go-sdk-v5 v0.7.73 
 )
 
 require (

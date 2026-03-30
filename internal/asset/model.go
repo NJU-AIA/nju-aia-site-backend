@@ -1,6 +1,11 @@
 package asset
 
-import "time"
+import (
+	"errors"
+	"time"
+)
+
+var ErrUnsafePath = errors.New("scope 或 name 含有非法路径字符")
 
 // AssetRecord 对应数据库中的静态资源记录
 type AssetRecord struct {
