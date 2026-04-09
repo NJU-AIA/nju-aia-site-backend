@@ -342,6 +342,11 @@ const docTemplate = `{
                     "description": "CreatedAt 创建时间",
                     "type": "string"
                 },
+                "date": {
+                    "description": "Date 手动设置的展示日期",
+                    "type": "string",
+                    "example": "2026-04-09"
+                },
                 "defaultMode": {
                     "description": "DefaultMode 展示模式：article, slide, homework",
                     "type": "string",
@@ -380,6 +385,7 @@ const docTemplate = `{
                 "author",
                 "category",
                 "content",
+                "date",
                 "defaultMode",
                 "title"
             ],
@@ -398,6 +404,10 @@ const docTemplate = `{
                 },
                 "cover": {
                     "type": "string"
+                },
+                "date": {
+                    "type": "string",
+                    "example": "2026-04-09"
                 },
                 "defaultMode": {
                     "type": "string",

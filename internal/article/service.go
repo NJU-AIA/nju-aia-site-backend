@@ -29,6 +29,7 @@ func (s *Service) CreateArticle(req CreateRequest) (string, error) {
 		Category:    req.Category,
 		Author:      req.Author,
 		DefaultMode: req.DefaultMode,
+		Date:        req.Date,
 		Content:     req.Content,
 		Cover:       req.Cover,
 	}
@@ -55,6 +56,7 @@ func (s *Service) UpdateArticle(id string, req CreateRequest) error {
 	art.Category = req.Category
 	art.Author = req.Author
 	art.DefaultMode = req.DefaultMode
+	art.Date = req.Date
 	art.Content = req.Content
 	art.Cover = req.Cover
 	// 3. 调用仓库执行保存

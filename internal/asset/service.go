@@ -38,7 +38,11 @@ func (s *Service) ProcessUpload(originalName, scope, nameStem string) (*AssetRec
 
 	path := "/" + scope + "/" + filename
 	savedPath := scope + "/" + filename
-	fullURL := strings.TrimSuffix(s.storage.GetBaseURL(), "/") + path
+	baseURL := ""
+	if s.storage != nil {
+		baseURL = strings.TrimSuffix(s.storage.GetBaseURL(), "/")
+	}
+	fullURL := baseURL + path
 
 	markdownValue := path
 	if kind == "article" {

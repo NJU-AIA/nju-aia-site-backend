@@ -41,7 +41,7 @@ func (h *Handler) CreateArticle(c *gin.Context) {
 	var req CreateRequest
 	// 1. 绑定并校验 JSON 参数
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, ErrorResponse{Error: "参数校验失败，请检查必填项及模式是否正确"})
+		c.JSON(http.StatusBadRequest, ErrorResponse{Error: "参数校验失败，请检查必填项、模式和日期格式是否正确"})
 		return
 	}
 
@@ -107,7 +107,7 @@ func (h *Handler) UpdateArticle(c *gin.Context) {
 	id := c.Param("id")
 	var req CreateRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, ErrorResponse{Error: "参数格式错误"})
+		c.JSON(http.StatusBadRequest, ErrorResponse{Error: "参数格式错误，请检查日期格式是否为 YYYY-MM-DD"})
 		return
 	}
 

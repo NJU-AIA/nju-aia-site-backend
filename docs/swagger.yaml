@@ -23,6 +23,10 @@ definitions:
       createdAt:
         description: CreatedAt 创建时间
         type: string
+      date:
+        description: Date 手动设置的展示日期
+        example: "2026-04-09"
+        type: string
       defaultMode:
         description: DefaultMode 展示模式：article, slide, homework
         example: article
@@ -59,6 +63,9 @@ definitions:
         type: string
       cover:
         type: string
+      date:
+        example: "2026-04-09"
+        type: string
       defaultMode:
         enum:
         - article
@@ -73,6 +80,7 @@ definitions:
     - author
     - category
     - content
+    - date
     - defaultMode
     - title
     type: object

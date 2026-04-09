@@ -28,11 +28,12 @@ func (r *Repository) FindByID(id string) (*Article, error) {
 // List 获取所有文章的元数据列表
 func (r *Repository) List() ([]Article, error) {
 	var articles []Article
-	
-	err := r.db.Select("id", "title", "category", "author", "default_mode", "created_at", "updated_at", "cover").
-		Order("created_at desc"). // 按创建时间倒序排列
+
+	err := r.db.Select("id", "title", "category", "author", "default_mode", "date", "created_at", "updated_at", "cover").
+		Order("date desc").       // 按手动设置的展示日期倒序排列
+		Order("created_at desc"). // 同日期下按创建时间倒序排列
 		Find(&articles).Error
-		
+
 	return articles, err
 }
 
