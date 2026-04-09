@@ -12,6 +12,7 @@ import (
 	"ArticleServer/internal/article"
 	"ArticleServer/internal/asset"
 	"ArticleServer/internal/auth"
+	"ArticleServer/internal/livecode"
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -65,6 +66,11 @@ func Run() {
 	assetSvc := asset.NewService(assetRepo, storageEngine)
 	assetHandler := asset.NewHandler(assetSvc)
 
+	// --- Livecode 模块 ---
+	livecodeRepo := livecode.NewRepository(db)
+	livecodeSvc := livecode.NewService(livecodeRepo)
+	livecodeHandler := livecode.NewHandler(livecodeSvc)
+
 	// --- 鉴权模块 (核心修改区) ---
 	// 强制读取安全密钥，没有任何默认值，缺失直接崩溃
 	jwtSecret := mustGetEnv("JWT_SECRET")
@@ -91,9 +97,11 @@ func Run() {
 		v1.POST("/auth/login", authHandler.LoginAdmin)
 
 		// --- 公开访问 (无需鉴权) ---
-		v1.GET("/articles", articleHandler.ListArticles)   // 获取文章列表
-		v1.GET("/articles/:id", articleHandler.GetArticle) // 获取文章详情
-		v1.GET("/assets", assetHandler.ListAssets)         // 获取资源列表
+		v1.GET("/articles", articleHandler.ListArticles)      // 获取文章列表
+		v1.GET("/articles/:id", articleHandler.GetArticle)    // 获取文章详情
+		v1.GET("/assets", assetHandler.ListAssets)            // 获取资源列表
+		v1.GET("/livecodes", livecodeHandler.ListDocuments)   // 获取 livecode 列表
+		v1.GET("/livecodes/:id", livecodeHandler.GetDocument) // 获取 livecode 详情
 
 		// --- 敏感操作 ---
 		authorized := v1.Group("/")
@@ -103,6 +111,11 @@ func Run() {
 			authorized.POST("/articles", articleHandler.CreateArticle)       // 创建文章
 			authorized.PUT("/articles/:id", articleHandler.UpdateArticle)    // 更新文章
 			authorized.DELETE("/articles/:id", articleHandler.DeleteArticle) // 删除文章
+
+			// Livecode 管理
+			authorized.POST("/livecodes", livecodeHandler.CreateDocument)       // 创建 livecode
+			authorized.PUT("/livecodes/:id", livecodeHandler.UpdateDocument)    // 更新 livecode
+			authorized.DELETE("/livecodes/:id", livecodeHandler.DeleteDocument) // 删除 livecode
 
 			// 资源管理
 			authorized.POST("/assets", assetHandler.UploadFile)    // 上传资源

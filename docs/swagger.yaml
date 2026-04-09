@@ -133,6 +133,106 @@ definitions:
       token:
         type: string
     type: object
+  livecode.Block:
+    properties:
+      content:
+        example: print('hello world')
+        type: string
+      id:
+        example: blk000000001
+        type: string
+      language:
+        example: python
+        type: string
+      order:
+        example: 1
+        type: integer
+      type:
+        example: code
+        type: string
+    type: object
+  livecode.BlockRequest:
+    properties:
+      content:
+        example: print('hello world')
+        type: string
+      language:
+        example: python
+        type: string
+      order:
+        example: 1
+        minimum: 1
+        type: integer
+      type:
+        enum:
+        - markdown
+        - code
+        example: code
+        type: string
+    required:
+    - content
+    - order
+    - type
+    type: object
+  livecode.Document:
+    properties:
+      blocks:
+        items:
+          $ref: '#/definitions/livecode.Block'
+        type: array
+      id:
+        example: lc001234
+        type: string
+      publishedAt:
+        example: "2026-04-09"
+        type: string
+      slug:
+        example: python-basic-demo
+        type: string
+    type: object
+  livecode.ErrorResponse:
+    properties:
+      error:
+        example: 错误信息描述
+        type: string
+    type: object
+  livecode.ListItem:
+    properties:
+      id:
+        example: lc001234
+        type: string
+      publishedAt:
+        example: "2026-04-09"
+        type: string
+      slug:
+        example: python-basic-demo
+        type: string
+    type: object
+  livecode.ListResponse:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/livecode.ListItem'
+        type: array
+    type: object
+  livecode.UpsertRequest:
+    properties:
+      blocks:
+        items:
+          $ref: '#/definitions/livecode.BlockRequest'
+        minItems: 1
+        type: array
+      publishedAt:
+        example: "2026-04-09"
+        type: string
+      slug:
+        example: python-basic-demo
+        type: string
+    required:
+    - blocks
+    - publishedAt
+    - slug
+    type: object
 host: localhost:8080
 info:
   contact: {}
@@ -335,4 +435,106 @@ paths:
       summary: 终极管理员登录 (仅依赖高熵动态口令)
       tags:
       - Auth
+  /livecodes:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/livecode.ListResponse'
+      summary: 获取 livecode 列表
+      tags:
+      - Livecodes
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: livecode 数据
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/livecode.UpsertRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/livecode.ErrorResponse'
+      summary: 创建 livecode 文件
+      tags:
+      - Livecodes
+  /livecodes/{id}:
+    delete:
+      parameters:
+      - description: livecode ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+      summary: 删除 livecode 文件
+      tags:
+      - Livecodes
+    get:
+      parameters:
+      - description: livecode ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/livecode.Document'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/livecode.ErrorResponse'
+      summary: 获取 livecode 详情
+      tags:
+      - Livecodes
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: livecode ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: 更新的数据
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/livecode.UpsertRequest'
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/livecode.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/livecode.ErrorResponse'
+      summary: 更新 livecode 文件
+      tags:
+      - Livecodes
 swagger: "2.0"

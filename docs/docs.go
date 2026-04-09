@@ -312,6 +312,163 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/livecodes": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Livecodes"
+                ],
+                "summary": "获取 livecode 列表",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/livecode.ListResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Livecodes"
+                ],
+                "summary": "创建 livecode 文件",
+                "parameters": [
+                    {
+                        "description": "livecode 数据",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/livecode.UpsertRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/livecode.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/livecodes/{id}": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Livecodes"
+                ],
+                "summary": "获取 livecode 详情",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "livecode ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/livecode.Document"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/livecode.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Livecodes"
+                ],
+                "summary": "更新 livecode 文件",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "livecode ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "更新的数据",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/livecode.UpsertRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/livecode.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/livecode.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Livecodes"
+                ],
+                "summary": "删除 livecode 文件",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "livecode ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -496,6 +653,147 @@ const docTemplate = `{
             "properties": {
                 "token": {
                     "type": "string"
+                }
+            }
+        },
+        "livecode.Block": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "string",
+                    "example": "print('hello world')"
+                },
+                "id": {
+                    "type": "string",
+                    "example": "blk000000001"
+                },
+                "language": {
+                    "type": "string",
+                    "example": "python"
+                },
+                "order": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "type": {
+                    "type": "string",
+                    "example": "code"
+                }
+            }
+        },
+        "livecode.BlockRequest": {
+            "type": "object",
+            "required": [
+                "content",
+                "order",
+                "type"
+            ],
+            "properties": {
+                "content": {
+                    "type": "string",
+                    "example": "print('hello world')"
+                },
+                "language": {
+                    "type": "string",
+                    "example": "python"
+                },
+                "order": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "example": 1
+                },
+                "type": {
+                    "type": "string",
+                    "enum": [
+                        "markdown",
+                        "code"
+                    ],
+                    "example": "code"
+                }
+            }
+        },
+        "livecode.Document": {
+            "type": "object",
+            "properties": {
+                "blocks": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/livecode.Block"
+                    }
+                },
+                "id": {
+                    "type": "string",
+                    "example": "lc001234"
+                },
+                "publishedAt": {
+                    "type": "string",
+                    "example": "2026-04-09"
+                },
+                "slug": {
+                    "type": "string",
+                    "example": "python-basic-demo"
+                }
+            }
+        },
+        "livecode.ErrorResponse": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "string",
+                    "example": "错误信息描述"
+                }
+            }
+        },
+        "livecode.ListItem": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string",
+                    "example": "lc001234"
+                },
+                "publishedAt": {
+                    "type": "string",
+                    "example": "2026-04-09"
+                },
+                "slug": {
+                    "type": "string",
+                    "example": "python-basic-demo"
+                }
+            }
+        },
+        "livecode.ListResponse": {
+            "type": "object",
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/livecode.ListItem"
+                    }
+                }
+            }
+        },
+        "livecode.UpsertRequest": {
+            "type": "object",
+            "required": [
+                "blocks",
+                "publishedAt",
+                "slug"
+            ],
+            "properties": {
+                "blocks": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "$ref": "#/definitions/livecode.BlockRequest"
+                    }
+                },
+                "publishedAt": {
+                    "type": "string",
+                    "example": "2026-04-09"
+                },
+                "slug": {
+                    "type": "string",
+                    "example": "python-basic-demo"
                 }
             }
         }
