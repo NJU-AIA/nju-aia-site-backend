@@ -9,7 +9,8 @@ import (
 )
 
 var ErrDuplicateSlug = errors.New("slug 已存在")
-var ErrInvalidBlocks = errors.New("blocks 数据不合法")
+var ErrInvalidBlock = errors.New("block 数据不合法")
+var ErrInvalidBlockIDs = errors.New("blockIds 数据不合法")
 
 type Service struct {
 	repo *Repository
@@ -20,10 +21,6 @@ func NewService(repo *Repository) *Service {
 }
 
 func (s *Service) CreateDocument(req UpsertRequest) (string, error) {
-	if err := validateBlocks(req.Blocks); err != nil {
-		return "", err
-	}
-
 	exists, err := s.repo.ExistsSlug(req.Slug, "")
 	if err != nil {
 		return "", err
@@ -37,21 +34,14 @@ func (s *Service) CreateDocument(req UpsertRequest) (string, error) {
 		ID:          docID,
 		Slug:        req.Slug,
 		PublishedAt: req.PublishedAt,
+		BlockIDs:    []string{},
 	}
 
-	blocks := make([]Block, 0, len(req.Blocks))
-	for _, block := range req.Blocks {
-		blocks = append(blocks, Block{
-			ID:         blockID(),
-			DocumentID: docID,
-			Type:       block.Type,
-			Order:      block.Order,
-			Content:    block.Content,
-			Language:   normalizeLanguage(block.Type, block.Language),
-		})
+	if err := s.repo.CreateDocument(doc); err != nil {
+		return "", err
 	}
 
-	return docID, s.repo.CreateDocumentWithBlocks(doc, blocks)
+	return docID, nil
 }
 
 func (s *Service) GetDocument(id string) (*Document, error) {
@@ -62,40 +52,48 @@ func (s *Service) ListDocuments() ([]ListItem, error) {
 	return s.repo.ListDocuments()
 }
 
-func (s *Service) UpdateDocument(id string, req UpsertRequest) error {
-	if err := validateBlocks(req.Blocks); err != nil {
+func (s *Service) AddBlock(documentID string, req BlockRequest) (*Block, error) {
+	if err := validateBlockRequest(req); err != nil {
+		return nil, err
+	}
+
+	if _, err := s.repo.FindDocumentByID(documentID); err != nil {
+		return nil, err
+	}
+
+	return s.repo.AddBlock(documentID, req)
+}
+
+func (s *Service) UpdateBlock(documentID, blockID string, req BlockRequest) (*Block, error) {
+	if err := validateBlockRequest(req); err != nil {
+		return nil, err
+	}
+
+	if _, err := s.repo.FindDocumentByID(documentID); err != nil {
+		return nil, err
+	}
+
+	return s.repo.UpdateBlock(documentID, blockID, req)
+}
+
+func (s *Service) DeleteBlock(documentID, blockID string) error {
+	if _, err := s.repo.FindDocumentByID(documentID); err != nil {
 		return err
 	}
 
-	doc, err := s.repo.FindDocumentByID(id)
-	if err != nil {
+	return s.repo.DeleteBlock(documentID, blockID)
+}
+
+func (s *Service) UpdateBlockIDs(documentID string, req BlockIDsRequest) error {
+	if err := validateBlockIDs(req.BlockIDs); err != nil {
 		return err
 	}
 
-	exists, err := s.repo.ExistsSlug(req.Slug, id)
-	if err != nil {
+	if _, err := s.repo.FindDocumentByID(documentID); err != nil {
 		return err
 	}
-	if exists {
-		return ErrDuplicateSlug
-	}
 
-	doc.Slug = req.Slug
-	doc.PublishedAt = req.PublishedAt
-
-	blocks := make([]Block, 0, len(req.Blocks))
-	for _, block := range req.Blocks {
-		blocks = append(blocks, Block{
-			ID:         blockID(),
-			DocumentID: id,
-			Type:       block.Type,
-			Order:      block.Order,
-			Content:    block.Content,
-			Language:   normalizeLanguage(block.Type, block.Language),
-		})
-	}
-
-	return s.repo.UpdateDocumentWithBlocks(doc, blocks)
+	return s.repo.UpdateBlockIDs(documentID, req.BlockIDs)
 }
 
 func (s *Service) DeleteDocument(id string) error {
@@ -117,25 +115,27 @@ func blockID() string {
 	return strings.ReplaceAll(uuid.New().String(), "-", "")[:12]
 }
 
-func validateBlocks(blocks []BlockRequest) error {
-	if len(blocks) == 0 {
-		return ErrInvalidBlocks
+func validateBlockRequest(block BlockRequest) error {
+	if block.Type == "code" && strings.TrimSpace(block.Language) == "" {
+		return ErrInvalidBlock
 	}
-
-	seenOrders := make(map[int]struct{}, len(blocks))
-	for _, block := range blocks {
-		if block.Type == "code" && strings.TrimSpace(block.Language) == "" {
-			return ErrInvalidBlocks
-		}
-		if block.Type == "markdown" && strings.TrimSpace(block.Language) != "" {
-			return ErrInvalidBlocks
-		}
-		if _, exists := seenOrders[block.Order]; exists {
-			return ErrInvalidBlocks
-		}
-		seenOrders[block.Order] = struct{}{}
+	if block.Type == "markdown" && strings.TrimSpace(block.Language) != "" {
+		return ErrInvalidBlock
 	}
+	return nil
+}
 
+func validateBlockIDs(blockIDs []string) error {
+	seen := make(map[string]struct{}, len(blockIDs))
+	for _, id := range blockIDs {
+		if strings.TrimSpace(id) == "" {
+			return ErrInvalidBlockIDs
+		}
+		if _, ok := seen[id]; ok {
+			return ErrInvalidBlockIDs
+		}
+		seen[id] = struct{}{}
+	}
 	return nil
 }
 

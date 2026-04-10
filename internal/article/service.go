@@ -29,6 +29,7 @@ func (s *Service) CreateArticle(req CreateRequest) (string, error) {
 		Category:    req.Category,
 		Author:      req.Author,
 		DefaultMode: req.DefaultMode,
+		Published:   req.Published,
 		Date:        req.Date,
 		Content:     req.Content,
 		Cover:       req.Cover,
@@ -39,14 +40,14 @@ func (s *Service) CreateArticle(req CreateRequest) (string, error) {
 }
 
 // GetArticle 获取单篇文章详情
-func (s *Service) GetArticle(id string) (*Article, error) {
-	return s.repo.FindByID(id)
+func (s *Service) GetArticle(id string, publishedOnly bool) (*Article, error) {
+	return s.repo.FindByID(id, publishedOnly)
 }
 
 // UpdateArticle 更新文章的业务逻辑
 func (s *Service) UpdateArticle(id string, req CreateRequest) error {
 	// 1. 检查文章是否存在
-	art, err := s.repo.FindByID(id)
+	art, err := s.repo.FindByID(id, false)
 	if err != nil {
 		return err
 	}
@@ -56,6 +57,7 @@ func (s *Service) UpdateArticle(id string, req CreateRequest) error {
 	art.Category = req.Category
 	art.Author = req.Author
 	art.DefaultMode = req.DefaultMode
+	art.Published = req.Published
 	art.Date = req.Date
 	art.Content = req.Content
 	art.Cover = req.Cover
@@ -65,7 +67,7 @@ func (s *Service) UpdateArticle(id string, req CreateRequest) error {
 
 // DeleteArticle 删除文章的业务逻辑
 func (s *Service) DeleteArticle(id string) error {
-	_, err := s.repo.FindByID(id)
+	_, err := s.repo.FindByID(id, false)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil

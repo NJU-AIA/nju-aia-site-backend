@@ -19,17 +19,25 @@ func (r *Repository) Create(a *Article) error {
 }
 
 // FindByID 根据 UUID 查找特定文章详情
-func (r *Repository) FindByID(id string) (*Article, error) {
+func (r *Repository) FindByID(id string, publishedOnly bool) (*Article, error) {
 	var a Article
-	err := r.db.First(&a, "id = ?", id).Error
+	db := r.db
+	if publishedOnly {
+		db = db.Where("published = ?", true)
+	}
+	err := db.First(&a, "id = ?", id).Error
 	return &a, err
 }
 
 // List 获取所有文章的元数据列表
-func (r *Repository) List() ([]Article, error) {
+func (r *Repository) List(publishedOnly bool) ([]Article, error) {
 	var articles []Article
+	db := r.db.Model(&Article{})
+	if publishedOnly {
+		db = db.Where("published = ?", true)
+	}
 
-	err := r.db.Select("id", "title", "category", "author", "default_mode", "date", "created_at", "updated_at", "cover").
+	err := db.Select("id", "title", "category", "author", "default_mode", "published", "date", "created_at", "updated_at", "cover").
 		Order("date desc").       // 按手动设置的展示日期倒序排列
 		Order("created_at desc"). // 同日期下按创建时间倒序排列
 		Find(&articles).Error

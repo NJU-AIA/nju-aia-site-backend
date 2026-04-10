@@ -79,7 +79,12 @@ go run main.go
 2.  运行 `go run cmd/totp/main.go`（建议编译为本地可执行文件）。
 3.  生成器会基于 HMAC-SHA256 和当前时间戳，每 30 秒严格同步生成一个 **16 位的强动态密码**（例如：`x6+xJ/c5fsWaVyxu`）。
 4.  调用 `POST /api/auth/login`，在 Body 中携带该口令：`{"password": "动态密码"}`。
-5.  获取 JWT Token 并放入请求头 `Authorization: Bearer <Token>` 中使用。
+5.  获取 JWT Token 并放入请求进行这样的设计：
+代码表只记录一个blocks的id列表，这样就不用维护order了，列表自带顺序
+blocks都记录在另一张表，用id标识，不管自己属于哪一个代码。
+
+这样前端修改顺序和添加内容都方便。
+
 
 ### 安全特性
 * **0 容差时间同步**: 口令严格按 30 秒窗口计算，过期 1 秒即失效。

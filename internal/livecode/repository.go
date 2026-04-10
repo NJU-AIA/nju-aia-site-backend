@@ -11,24 +11,22 @@ func NewRepository(db *gorm.DB) *Repository {
 	return &Repository{db: db}
 }
 
-func (r *Repository) CreateDocumentWithBlocks(doc *Document, blocks []Block) error {
-	return r.db.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Create(doc).Error; err != nil {
-			return err
-		}
-		if len(blocks) == 0 {
-			return nil
-		}
-		return tx.Create(&blocks).Error
-	})
+func (r *Repository) CreateDocument(doc *Document) error {
+	return r.db.Create(doc).Error
 }
 
 func (r *Repository) FindDocumentByID(id string) (*Document, error) {
 	var doc Document
-	err := r.db.Preload("Blocks", func(db *gorm.DB) *gorm.DB {
-		return db.Order("block_order asc")
-	}).First(&doc, "id = ?", id).Error
-	return &doc, err
+	if err := r.db.First(&doc, "id = ?", id).Error; err != nil {
+		return &doc, err
+	}
+
+	blocks, err := r.findBlocksByIDs(doc.BlockIDs)
+	if err != nil {
+		return nil, err
+	}
+	doc.Blocks = blocks
+	return &doc, nil
 }
 
 func (r *Repository) ListDocuments() ([]ListItem, error) {
@@ -41,26 +39,87 @@ func (r *Repository) ListDocuments() ([]ListItem, error) {
 	return items, err
 }
 
-func (r *Repository) UpdateDocumentWithBlocks(doc *Document, blocks []Block) error {
+func (r *Repository) AddBlock(documentID string, req BlockRequest) (*Block, error) {
+	var created Block
+	err := r.db.Transaction(func(tx *gorm.DB) error {
+		var doc Document
+		if err := tx.First(&doc, "id = ?", documentID).Error; err != nil {
+			return err
+		}
+
+		created = Block{
+			ID:       blockID(),
+			Type:     req.Type,
+			Content:  req.Content,
+			Language: normalizeLanguage(req.Type, req.Language),
+		}
+
+		if err := tx.Create(&created).Error; err != nil {
+			return err
+		}
+
+		doc.BlockIDs = append(doc.BlockIDs, created.ID)
+		return tx.Save(&doc).Error
+	})
+	return &created, err
+}
+
+func (r *Repository) UpdateBlock(documentID, blockID string, req BlockRequest) (*Block, error) {
+	var updated Block
+	err := r.db.Transaction(func(tx *gorm.DB) error {
+		var doc Document
+		if err := tx.First(&doc, "id = ?", documentID).Error; err != nil {
+			return err
+		}
+		if !containsString(doc.BlockIDs, blockID) {
+			return gorm.ErrRecordNotFound
+		}
+
+		if err := tx.First(&updated, "id = ?", blockID).Error; err != nil {
+			return err
+		}
+
+		updated.Type = req.Type
+		updated.Content = req.Content
+		updated.Language = normalizeLanguage(req.Type, req.Language)
+
+		return tx.Save(&updated).Error
+	})
+	return &updated, err
+}
+
+func (r *Repository) UpdateBlockIDs(documentID string, blockIDs []string) error {
 	return r.db.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Model(&Document{}).
-			Where("id = ?", doc.ID).
-			Updates(map[string]any{
-				"slug":         doc.Slug,
-				"published_at": doc.PublishedAt,
-			}).Error; err != nil {
+		var doc Document
+		if err := tx.First(&doc, "id = ?", documentID).Error; err != nil {
 			return err
 		}
 
-		if err := tx.Where("document_id = ?", doc.ID).Delete(&Block{}).Error; err != nil {
+		if _, err := r.findBlocksByIDs(blockIDs); err != nil {
 			return err
 		}
 
-		if len(blocks) == 0 {
-			return nil
+		doc.BlockIDs = append([]string(nil), blockIDs...)
+		return tx.Save(&doc).Error
+	})
+}
+
+func (r *Repository) DeleteBlock(documentID, blockID string) error {
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		var doc Document
+		if err := tx.First(&doc, "id = ?", documentID).Error; err != nil {
+			return err
+		}
+		if !containsString(doc.BlockIDs, blockID) {
+			return gorm.ErrRecordNotFound
 		}
 
-		return tx.Create(&blocks).Error
+		if err := tx.Delete(&Block{}, "id = ?", blockID).Error; err != nil {
+			return err
+		}
+
+		doc.BlockIDs = removeString(doc.BlockIDs, blockID)
+		return tx.Save(&doc).Error
 	})
 }
 
@@ -78,4 +137,50 @@ func (r *Repository) ExistsSlug(slug string, excludeID string) (bool, error) {
 		return false, err
 	}
 	return count > 0, nil
+}
+
+func (r *Repository) findBlocksByIDs(ids []string) ([]Block, error) {
+	if len(ids) == 0 {
+		return []Block{}, nil
+	}
+
+	var blocks []Block
+	if err := r.db.Where("id IN ?", ids).Find(&blocks).Error; err != nil {
+		return nil, err
+	}
+
+	blockMap := make(map[string]Block, len(blocks))
+	for _, block := range blocks {
+		blockMap[block.ID] = block
+	}
+
+	ordered := make([]Block, 0, len(ids))
+	for _, id := range ids {
+		block, ok := blockMap[id]
+		if !ok {
+			return nil, gorm.ErrRecordNotFound
+		}
+		ordered = append(ordered, block)
+	}
+
+	return ordered, nil
+}
+
+func containsString(values []string, target string) bool {
+	for _, value := range values {
+		if value == target {
+			return true
+		}
+	}
+	return false
+}
+
+func removeString(values []string, target string) []string {
+	result := make([]string, 0, len(values))
+	for _, value := range values {
+		if value != target {
+			result = append(result, value)
+		}
+	}
+	return result
 }

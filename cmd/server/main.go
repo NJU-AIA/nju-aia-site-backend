@@ -57,20 +57,6 @@ func Run() {
 
 	// 3. 模块初始化
 	// --- 文章模块 ---
-	articleRepo := article.NewRepository(db)
-	articleSvc := article.NewService(articleRepo)
-	articleHandler := article.NewHandler(articleSvc)
-
-	// --- 静态资源模块 ---
-	assetRepo := asset.NewRepository(db)
-	assetSvc := asset.NewService(assetRepo, storageEngine)
-	assetHandler := asset.NewHandler(assetSvc)
-
-	// --- Livecode 模块 ---
-	livecodeRepo := livecode.NewRepository(db)
-	livecodeSvc := livecode.NewService(livecodeRepo)
-	livecodeHandler := livecode.NewHandler(livecodeSvc)
-
 	// --- 鉴权模块 (核心修改区) ---
 	// 强制读取安全密钥，没有任何默认值，缺失直接崩溃
 	jwtSecret := mustGetEnv("JWT_SECRET")
@@ -83,6 +69,20 @@ func Run() {
 	)
 	authHandler := auth.NewHandler(authSvc)
 	authMiddleware := auth.NewMiddleware(authSvc)
+
+	articleRepo := article.NewRepository(db)
+	articleSvc := article.NewService(articleRepo)
+	articleHandler := article.NewHandler(articleSvc, authSvc)
+
+	// --- 静态资源模块 ---
+	assetRepo := asset.NewRepository(db)
+	assetSvc := asset.NewService(assetRepo, storageEngine)
+	assetHandler := asset.NewHandler(assetSvc)
+
+	// --- Livecode 模块 ---
+	livecodeRepo := livecode.NewRepository(db)
+	livecodeSvc := livecode.NewService(livecodeRepo)
+	livecodeHandler := livecode.NewHandler(livecodeSvc)
 
 	// 4. 设置路由
 	r := gin.Default()
@@ -113,9 +113,12 @@ func Run() {
 			authorized.DELETE("/articles/:id", articleHandler.DeleteArticle) // 删除文章
 
 			// Livecode 管理
-			authorized.POST("/livecodes", livecodeHandler.CreateDocument)       // 创建 livecode
-			authorized.PUT("/livecodes/:id", livecodeHandler.UpdateDocument)    // 更新 livecode
-			authorized.DELETE("/livecodes/:id", livecodeHandler.DeleteDocument) // 删除 livecode
+			authorized.POST("/livecodes", livecodeHandler.CreateDocument)                    // 创建 livecode 空文件
+			authorized.PUT("/livecodes/:id/block-ids", livecodeHandler.UpdateBlockIDs)       // 更新 block 列表顺序
+			authorized.POST("/livecodes/:id/blocks", livecodeHandler.AddBlock)               // 新增 block
+			authorized.PUT("/livecodes/:id/blocks/:blockId", livecodeHandler.UpdateBlock)    // 更新 block
+			authorized.DELETE("/livecodes/:id/blocks/:blockId", livecodeHandler.DeleteBlock) // 删除 block
+			authorized.DELETE("/livecodes/:id", livecodeHandler.DeleteDocument)              // 删除 livecode
 
 			// 资源管理
 			authorized.POST("/assets", assetHandler.UploadFile)    // 上传资源

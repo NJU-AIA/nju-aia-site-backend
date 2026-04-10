@@ -24,6 +24,9 @@ type Article struct {
 	// DefaultMode 展示模式：article, slide, homework
 	DefaultMode string `gorm:"size:20;not null;default:'article'" json:"defaultMode" example:"article"`
 
+	// Published 是否已发布
+	Published bool `gorm:"not null;default:false" json:"published" example:"false"`
+
 	// Date 手动设置的展示日期
 	Date string `gorm:"size:10;not null" json:"date" example:"2026-04-09"`
 
@@ -40,7 +43,8 @@ type CreateRequest struct {
 	Content     string `json:"content" binding:"required" example:"# 正文"`
 	Author      string `json:"author" binding:"required" example:"作者"`
 	Category    string `json:"category" binding:"required" example:"分类"`
-	DefaultMode string `json:"defaultMode" binding:"required,oneof=article slide homework" example:"article"`
+	DefaultMode string `json:"defaultMode" example:"article"`
+	Published   bool   `json:"published" example:"false"`
 	Date        string `json:"date" binding:"required,datetime=2006-01-02" example:"2026-04-09"`
 	Cover       string `json:"cover"`
 }

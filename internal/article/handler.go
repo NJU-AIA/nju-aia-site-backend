@@ -3,19 +3,23 @@ package article
 import (
 	"errors"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
+
+	"ArticleServer/internal/auth"
 )
 
 // Handler 负责文章模块的 HTTP 路由处理
 type Handler struct {
-	svc *Service
+	svc     *Service
+	authSvc *auth.Service
 }
 
 // NewHandler 初始化处理器
-func NewHandler(svc *Service) *Handler {
-	return &Handler{svc: svc}
+func NewHandler(svc *Service, authSvc *auth.Service) *Handler {
+	return &Handler{svc: svc, authSvc: authSvc}
 }
 
 // ErrorResponse 统一错误响应结构
@@ -41,7 +45,7 @@ func (h *Handler) CreateArticle(c *gin.Context) {
 	var req CreateRequest
 	// 1. 绑定并校验 JSON 参数
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, ErrorResponse{Error: "参数校验失败，请检查必填项、模式和日期格式是否正确"})
+		c.JSON(http.StatusBadRequest, ErrorResponse{Error: "参数校验失败，请检查必填项和日期格式是否正确"})
 		return
 	}
 
@@ -58,12 +62,14 @@ func (h *Handler) CreateArticle(c *gin.Context) {
 
 // ListArticles 处理获取文章列表请求
 // @Summary 获取文章列表
+// @Description 游客只能看到已发布文章；管理员 token 可看到全部文章
 // @Tags Articles
 // @Produce json
 // @Success 200 {object} ArticleListResponse
 // @Router /articles [get]
 func (h *Handler) ListArticles(c *gin.Context) {
-	list, err := h.svc.repo.List()
+	publishedOnly := !h.isAdminRequest(c)
+	list, err := h.svc.repo.List(publishedOnly)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "无法获取文章列表"})
 		return
@@ -74,6 +80,7 @@ func (h *Handler) ListArticles(c *gin.Context) {
 
 // GetArticle 处理获取单篇文章详情请求
 // @Summary 获取文章详情
+// @Description 游客只能查看已发布文章；管理员 token 可查看全部文章
 // @Tags Articles
 // @Param id path string true "文章 ID (UUID)"
 // @Produce json
@@ -82,7 +89,7 @@ func (h *Handler) ListArticles(c *gin.Context) {
 // @Router /articles/{id} [get]
 func (h *Handler) GetArticle(c *gin.Context) {
 	id := c.Param("id")
-	art, err := h.svc.GetArticle(id)
+	art, err := h.svc.GetArticle(id, !h.isAdminRequest(c))
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			c.JSON(http.StatusNotFound, ErrorResponse{Error: "该文章不存在"})
@@ -137,4 +144,30 @@ func (h *Handler) DeleteArticle(c *gin.Context) {
 	}
 
 	c.Status(http.StatusNoContent)
+}
+
+func (h *Handler) isAdminRequest(c *gin.Context) bool {
+	if h.authSvc == nil {
+		return false
+	}
+
+	token := extractBearerToken(c.GetHeader("Authorization"))
+	if token == "" {
+		return false
+	}
+
+	claims, err := h.authSvc.ParseToken(token)
+	if err != nil {
+		return false
+	}
+
+	return claims.Role == auth.RoleSuperAdmin
+}
+
+func extractBearerToken(header string) string {
+	const prefix = "Bearer "
+	if len(header) < len(prefix) || !strings.EqualFold(header[:len(prefix)], prefix) {
+		return ""
+	}
+	return strings.TrimSpace(header[len(prefix):])
 }
